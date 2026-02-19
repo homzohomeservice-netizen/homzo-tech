@@ -1,126 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Homzo Godhra System</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-<style>
-body{font-family:Arial;background:#f2f2f2;margin:0;padding:0}
-header{background:#111;color:#fff;padding:15px;text-align:center}
-.container{padding:15px}
-.card{background:#fff;padding:15px;margin-bottom:10px;border-radius:8px}
-button{padding:8px 12px;border:none;background:#111;color:#fff;border-radius:5px}
-input,select{padding:8px;width:100%;margin-bottom:8px}
-</style>
+    <title>Homzo – Home Service Experts</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase v8 CDN -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <script src="firebase.js"></script>
 </head>
 <body>
 
-<header>Homzo Godhra Internal System</header>
+<header>
+    Homzo – Home Service Experts
+</header>
 
-<div class="container" id="loginBox">
-<h3>Login</h3>
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="password" placeholder="Password">
-<button onclick="login()">Login</button>
-</div>
-
-<div class="container" id="adminPanel" style="display:none;">
-<h3>Admin Panel</h3>
-<input id="jobTitle" placeholder="Job Title">
-<input id="jobArea" placeholder="Area">
-<textarea id="jobDesc" placeholder="Description"></textarea>
-<button onclick="addJob()">Add Job</button>
-<div id="jobList"></div>
-</div>
-
-<div class="container" id="techPanel" style="display:none;">
-<h3>Technician Panel</h3>
-<div id="techJobs"></div>
+<div class="container">
+    <div class="card">
+        <h3>Login</h3>
+        <input type="email" id="email" placeholder="Enter Email">
+        <input type="password" id="password" placeholder="Enter Password">
+        <button class="btn-primary" onclick="login()">Login</button>
+    </div>
 </div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyD2cPJcIYsGs3ftlWRHpDRyJxJTwItNdIo",
-  authDomain: "homzo-f3f58.firebaseapp.com",
-  projectId: "homzo-f3f58",
-  storageBucket: "homzo-f3f58.firebasestorage.app",
-  messagingSenderId: "597971565492",
-  appId: "1:597971565492:web:bcc69393e7a902c1db50e1",
-  measurementId: "G-Q18FS31YK6"
-};
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-function login(){
-let email=document.getElementById("email").value;
-let pass=document.getElementById("password").value;
-auth.signInWithEmailAndPassword(email,pass)
-.then(()=>{
-if(email=="admin@homzo.com"){
-document.getElementById("loginBox").style.display="none";
-document.getElementById("adminPanel").style.display="block";
-loadJobs();
-}else{
-document.getElementById("loginBox").style.display="none";
-document.getElementById("techPanel").style.display="block";
-loadTechJobs();
-}
-})
-.catch(alert);
-}
+    auth.signInWithEmailAndPassword(email, password)
+    .then(async (cred) => {
 
-function addJob(){
-let title=document.getElementById("jobTitle").value;
-let area=document.getElementById("jobArea").value;
-let desc=document.getElementById("jobDesc").value;
-db.collection("jobs").add({
-title:title,
-area:area,
-desc:desc,
-status:"open",
-created:Date.now()
-});
-}
+        const doc = await db.collection("users").doc(cred.user.uid).get();
 
-function loadJobs(){
-db.collection("jobs").orderBy("created","desc")
-.onSnapshot(snap=>{
-let html="";
-snap.forEach(doc=>{
-let d=doc.data();
-html+=`<div class="card">
-<b>${d.title}</b><br>
-Area: ${d.area}<br>
-Status: ${d.status}
-</div>`;
-});
-document.getElementById("jobList").innerHTML=html;
-});
-}
+        if (!doc.exists) {
+            alert("User role not assigned.");
+            return;
+        }
 
-function loadTechJobs(){
-db.collection("jobs").where("status","==","open")
-.onSnapshot(snap=>{
-let html="";
-snap.forEach(doc=>{
-let d=doc.data();
-html+=`<div class="card">
-<b>${d.title}</b><br>
-Area: ${d.area}<br>
-<button onclick="acceptJob('${doc.id}')">Accept</button>
-</div>`;
-});
-document.getElementById("techJobs").innerHTML=html;
-});
-}
+        const role = doc.data().role;
 
-function acceptJob(id){
-db.collection("jobs").doc(id).update({status:"accepted"});
+        if (role === "admin") {
+            window.location.href = "admin.html";
+        } else if (role === "tech") {
+            window.location.href = "tech.html";
+        } else {
+            alert("Invalid Role");
+        }
+
+    })
+    .catch(err => alert(err.message));
 }
 
 </script>
