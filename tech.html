@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Technician Panel - Homzo</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase v8 CDN -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <script src="firebase.js"></script>
+</head>
+<body onload="initTech()">
+
+<header>
+    Technician Dashboard
+    <div class="top-buttons">
+        <button onclick="changePassword()" class="btn-primary">Change Password</button>
+        <button onclick="logout()" class="logout-btn">Logout</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="card">
+        <h3>Available Jobs</h3>
+        <div id="jobs"></div>
+    </div>
+</div>
+
+<script>
+
+checkAuth("tech");
+
+function initTech() {
+    loadJobs();
+}
+
+// LOAD JOBS REALTIME
+function loadJobs() {
+
+    db.collection("jobs").orderBy("createdAt", "desc")
+    .onSnapshot(snapshot => {
+
+        let html = "";
+
+        snapshot.forEach(doc => {
+
+            const job = doc.data();
+            const id = doc.id;
+
+            if (job.status === "pending" || job.status === "accepted") {
+
+                html += `
+                    <div class="card">
+                        <b>${job.customer}</b> (${job.area})<br>
+                        ${job.phone}<br>
+                        ${job.description}
+                        <div class="job-status status-${job.status}">
+                            ${job.status.toUpperCase()}
+                        </div>
+
+                        ${job.status === "pending" ? 
+                            `<button class="btn-success" onclick="acceptJob('${id}')">Accept</button>` 
+                            : ""}
+
+                        ${job.status === "accepted" ? `
+                            <br><br>
+                            Before Photo:
+                            <input type="file" onchange="uploadPhoto(event, '${id}', 'before')">
+                            After Photo:
+                            <input type="file" onchange="uploadPhoto(event, '${id}', 'after')">
+                            <br><br>
+                            <button class="btn-success" onclick="completeJob('${id}')">Complete</button>
+                            <button class="btn-danger" onclick="reportJob('${id}')">Report</button>
+                        ` : ""}
+
+                    </div>
+                `;
+            }
+
+        });
+
+        document.getElementById("jobs").innerHTML = html;
+
+    });
+}
+
+
+// ACCEPT JOB + SAVE LOCATION
+function acceptJob(id) {
+
+    getLocation(location => {
+
+        db.collection("jobs").doc(id).update({
+            status: "accepted",
+            techLocation: location
+        });
+
+        alert("Job Accepted");
+    });
+}
+
+
+// COMPLETE JOB
+function completeJob(id) {
+    db.collection("jobs").doc(id).update({
+        status: "completed"
+    });
+}
+
+
+// REPORT JOB
+function reportJob(id) {
+    db.collection("jobs").doc(id).update({
+        status: "reported"
+    });
+}
+
+
+// PHOTO UPLOAD
+function uploadPhoto(event, jobId, type) {
+
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const ref = storage.ref("jobs/" + jobId + "_" + type + ".jpg");
+
+    ref.put(file).then(() => {
+        alert(type + " photo uploaded");
+    });
+}
+
+</script>
+
+</body>
+</html>
