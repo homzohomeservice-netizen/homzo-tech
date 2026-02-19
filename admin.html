@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel - Homzo</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase v8 CDN -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <script src="firebase.js"></script>
+</head>
+<body onload="initAdmin()">
+
+<header>
+    Admin Dashboard
+    <div class="top-buttons">
+        <button onclick="changePassword()" class="btn-primary">Change Password</button>
+        <button onclick="logout()" class="logout-btn">Logout</button>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- Add Job -->
+    <div class="card">
+        <h3>Add New Job</h3>
+        <input type="text" id="customer" placeholder="Customer Name">
+        <input type="text" id="phone" placeholder="Phone">
+        <input type="text" id="area" placeholder="Area">
+        <textarea id="description" placeholder="Job Description"></textarea>
+        <button class="btn-success" onclick="addJob()">Add Job</button>
+    </div>
+
+    <!-- Jobs List -->
+    <div class="card">
+        <h3>Active Jobs</h3>
+        <div id="jobs"></div>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+        <h3>Completed / Reported</h3>
+        <div id="history"></div>
+    </div>
+
+</div>
+
+<script>
+
+checkAuth("admin");
+requestNotification();
+
+function initAdmin() {
+    loadJobs();
+}
+
+// ADD JOB
+function addJob() {
+
+    const customer = document.getElementById("customer").value;
+    const phone = document.getElementById("phone").value;
+    const area = document.getElementById("area").value;
+    const description = document.getElementById("description").value;
+
+    db.collection("jobs").add({
+        customer,
+        phone,
+        area,
+        description,
+        status: "pending",
+        createdAt: new Date()
+    });
+
+    alert("Job Added");
+}
+
+// LOAD JOBS (REAL TIME)
+function loadJobs() {
+
+    db.collection("jobs").orderBy("createdAt", "desc")
+    .onSnapshot(snapshot => {
+
+        let activeHTML = "";
+        let historyHTML = "";
+
+        snapshot.forEach(doc => {
+            const job = doc.data();
+            const id = doc.id;
+
+            const html = `
+                <div class="card">
+                    <b>${job.customer}</b> (${job.area})<br>
+                    ${job.phone}<br>
+                    ${job.description}
+                    <div class="job-status status-${job.status}">
+                        ${job.status.toUpperCase()}
+                    </div>
+                    <button class="btn-danger" onclick="deleteJob('${id}')">Delete</button>
+                </div>
+            `;
+
+            if (job.status === "completed" || job.status === "reported") {
+                historyHTML += html;
+            } else {
+                activeHTML += html;
+            }
+        });
+
+        document.getElementById("jobs").innerHTML = activeHTML;
+        document.getElementById("history").innerHTML = historyHTML;
+
+    });
+}
+
+// DELETE JOB
+function deleteJob(id) {
+    db.collection("jobs").doc(id).delete();
+}
+
+</script>
+
+</body>
+</html>
