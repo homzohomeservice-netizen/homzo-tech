@@ -29,7 +29,69 @@ function showTab(type) {
     }
 }
 
-function loadJobs() {
+function loadJobs(<!DOCTYPE html>
+<html>
+<head>
+    <title>Homzo – Home Service Experts</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase v8 CDN -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <script src="firebase.js"></script>
+</head>
+<body>
+
+<header>
+    Homzo – Home Service Experts
+</header>
+
+<div class="container">
+    <div class="card">
+        <h3>Login</h3>
+        <input type="email" id="email" placeholder="Enter Email">
+        <input type="password" id="password" placeholder="Enter Password">
+        <button class="btn-primary" onclick="login()">Login</button>
+    </div>
+</div>
+
+<script>
+
+function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    auth.signInWithEmailAndPassword(email, password)
+    .then(async (cred) => {
+
+        const doc = await db.collection("users").doc(cred.user.uid).get();
+
+        if (!doc.exists) {
+            alert("User role not assigned.");
+            return;
+        }
+
+        const role = doc.data().role;
+
+        if (role === "admin") {
+            window.location.href = "admin.html";
+        } else if (role === "tech") {
+            window.location.href = "tech.html";
+        } else {
+            alert("Invalid Role");
+        }
+
+    })
+    .catch(err => alert(err.message));
+}
+
+</script>
+
+</body>
+</html>) {
     db.collection("jobs").orderBy("createdAt", "desc")
     .onSnapshot(snapshot => {
         let newHtml = "";
