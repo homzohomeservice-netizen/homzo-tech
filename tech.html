@@ -1,38 +1,7 @@
-<div class="container">
-    <div style="margin-bottom: 20px;">
-        <button onclick="showTab('new')" class="btn-primary">New Jobs</button>
-        <button onclick="showTab('active')" class="btn-success">My Active Jobs</button>
-    </div>
-
-    <div id="new-jobs-section">
-        <h3>New Available Jobs</h3>
-        <div id="new-jobs-list"></div>
-    </div>
-
-    <div id="active-jobs-section" style="display:none;">
-        <h3>My Working Jobs</h3>
-        <div id="active-jobs-list"></div>
-    </div>
-</div>
-
-<script>
-// Global object to track photo uploads for UI validation
-let uploadStatus = {};
-
-function showTab(type) {
-    if(type === 'new') {
-        document.getElementById('new-jobs-section').style.display = 'block';
-        document.getElementById('active-jobs-section').style.display = 'none';
-    } else {
-        document.getElementById('new-jobs-section').style.display = 'none';
-        document.getElementById('active-jobs-section').style.display = 'block';
-    }
-}
-
-function loadJobs(<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
-    <title>Homzo – Home Service Experts</title>
+    <title>Technician Panel - Homzo</title>
     <link rel="stylesheet" href="style.css">
 
     <!-- Firebase v8 CDN -->
@@ -46,148 +15,13 @@ function loadJobs(<!DOCTYPE html>
 <body>
 
 <header>
-    Homzo – Home Service Experts
+    Technician Dashboard
+    <button onclick="logout()" style="float:right;">Logout</button>
 </header>
 
 <div class="container">
-    <div class="card">
-        <h3>Login</h3>
-        <input type="email" id="email" placeholder="Enter Email">
-        <input type="password" id="password" placeholder="Enter Password">
-        <button class="btn-primary" onclick="login()">Login</button>
-    </div>
-</div>
 
-<script>
-
-function login() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-
-    auth.signInWithEmailAndPassword(email, password)
-    .then(async (cred) => {
-
-        const doc = await db.collection("users").doc(cred.user.uid).get();
-
-        if (!doc.exists) {
-            alert("User role not assigned.");
-            return;
-        }
-
-        const role = doc.data().role;
-
-        if (role === "admin") {
-            window.location.href = "admin.html";
-        } else if (role === "tech") {
-            window.location.href = "tech.html";
-        } else {
-            alert("Invalid Role");
-        }
-
-    })
-    .catch(err => alert(err.message));
-}
-
-</script>
-
-</body>
-</html>) {
-    db.collection("jobs").orderBy("createdAt", "desc")
-    .onSnapshot(snapshot => {
-        let newHtml = "";
-        let activeHtml = "";
-
-        snapshot.forEach(doc => {
-            const job = doc.data();
-            const id = doc.id;
-
-            // SECTION 1: PENDING JOBS (Jo koi bhi accept kar sakta hai)
-            if (job.status === "pending") {
-                newHtml += `
-                    <div class="card">
-                        <b>${job.customer}</b> (${job.area})<br>
-                        <p>${job.description}</p>
-                        <button class="btn-success" onclick="acceptJob('${id}')">Accept Job</button>
-                    </div>`;
-            }
-
-            // SECTION 2: ACCEPTED JOBS (Jo technician ne pakad li hain)
-            if (job.status === "accepted") {
-                // Initialize upload status if not exists
-                if(!uploadStatus[id]) uploadStatus[id] = {before: false, after: false};
-
-                activeHtml += `
-                    <div class="card border-active">
-                        <div class="job-header">
-                            <b>${job.customer}</b> - <span class="status-accepted">IN PROGRESS</span>
-                        </div>
-                        <p>📍 ${job.area} | 📞 ${job.phone}</p>
-                        <p>📝 ${job.description}</p>
-                        
-                        <div class="upload-box">
-                            <div>
-                                <label>1. Before Photo:</label>
-                                <input type="file" onchange="uploadPhoto(event, '${id}', 'before')">
-                            </div>
-                            <div style="margin-top:10px">
-                                <label>2. After Photo:</label>
-                                <input type="file" onchange="uploadPhoto(event, '${id}', 'after')">
-                            </div>
-                        </div>
-
-                        <div style="margin-top:15px">
-                            <button id="comp-btn-${id}" class="btn-complete" 
-                                ${(!job.beforePic || !job.afterPic) ? 'disabled style="opacity:0.5"' : ''} 
-                                onclick="completeJob('${id}')">
-                                Confirm & Finish Work
-                            </button>
-                            <button class="btn-danger-outline" onclick="reportJob('${id}')">Report Issue</button>
-                        </div>
-                    </div>`;
-            }
-        });
-
-        document.getElementById("new-jobs-list").innerHTML = newHtml || "<p>No new jobs available.</p>";
-        document.getElementById("active-jobs-list").innerHTML = activeHtml || "<p>You have no active jobs.</p>";
-    });
-}
-
-function uploadPhoto(event, jobId, type) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Show loading hint
-    event.target.parentElement.style.color = "orange";
-    
-    const ref = storage.ref("jobs/" + jobId + "_" + type + ".jpg");
-
-    ref.put(file).then(snapshot => {
-        return snapshot.ref.getDownloadURL();
-    }).then(url => {
-        // Update database with image URL
-        let updateData = {};
-        updateData[type + "Pic"] = url; // Sets beforePic or afterPic
-        
-        db.collection("jobs").doc(jobId).update(updateData).then(() => {
-            alert(type.toUpperCase() + " photo saved!");
-            event.target.parentElement.style.color = "green";
-        });
-    }).catch(err => {
-        alert("Upload failed: " + err.message);
-    });
-}
-
-// Baki acceptJob aur completeJob functions aapke purane hi chalenge.
-</script>
-
-<style>
-/* Thodi styling behtar karne ke liye */
-.border-active { border-left: 5px solid #28a745; margin-bottom: 15px; padding: 15px; background: #f9fff9; }
-.upload-box { background: #eee; padding: 10px; border-radius: 5px; margin-top: 10px; }
-.btn-complete { background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-.btn-danger-outline { background: transparent; border: 1px solid red; color: red; padding: 8px; margin-left: 10px; border-radius: 4px; }
-</style><div class="container">
-    <div style="margin-bottom: 20px;">
+    <div style="margin-bottom:20px;">
         <button onclick="showTab('new')" class="btn-primary">New Jobs</button>
         <button onclick="showTab('active')" class="btn-success">My Active Jobs</button>
     </div>
@@ -201,109 +35,170 @@ function uploadPhoto(event, jobId, type) {
         <h3>My Working Jobs</h3>
         <div id="active-jobs-list"></div>
     </div>
+
 </div>
 
 <script>
-// Global object to track photo uploads for UI validation
-let uploadStatus = {};
+
+let currentUserId = null;
+
+window.addEventListener("DOMContentLoaded", function () {
+    checkAuth("tech");
+
+    auth.onAuthStateChanged(user => {
+        if(user){
+            currentUserId = user.uid;
+            loadJobs();
+        }
+    });
+});
+
 
 function showTab(type) {
-    if(type === 'new') {
-        document.getElementById('new-jobs-section').style.display = 'block';
-        document.getElementById('active-jobs-section').style.display = 'none';
-    } else {
-        document.getElementById('new-jobs-section').style.display = 'none';
-        document.getElementById('active-jobs-section').style.display = 'block';
-    }
+    document.getElementById('new-jobs-section').style.display =
+        type === 'new' ? 'block' : 'none';
+
+    document.getElementById('active-jobs-section').style.display =
+        type === 'active' ? 'block' : 'none';
 }
 
+
 function loadJobs() {
-    db.collection("jobs").orderBy("createdAt", "desc")
+
+    db.collection("jobs")
+    .orderBy("createdAt", "desc")
     .onSnapshot(snapshot => {
+
         let newHtml = "";
         let activeHtml = "";
 
         snapshot.forEach(doc => {
+
             const job = doc.data();
             const id = doc.id;
+            const status = job.status || "pending";
 
-            // SECTION 1: PENDING JOBS (Jo koi bhi accept kar sakta hai)
-            if (job.status === "pending") {
+            // 🔹 New jobs (only pending + not assigned)
+            if (status === "pending" && !job.assignedTo) {
                 newHtml += `
                     <div class="card">
                         <b>${job.customer}</b> (${job.area})<br>
-                        <p>${job.description}</p>
-                        <button class="btn-success" onclick="acceptJob('${id}')">Accept Job</button>
+                        📞 ${job.phone}<br>
+                        📝 ${job.description}
+                        <br><br>
+                        <button class="btn-success" onclick="acceptJob('${id}')">
+                            Accept Job
+                        </button>
                     </div>`;
             }
 
-            // SECTION 2: ACCEPTED JOBS (Jo technician ne pakad li hain)
-            if (job.status === "accepted") {
-                // Initialize upload status if not exists
-                if(!uploadStatus[id]) uploadStatus[id] = {before: false, after: false};
+            // 🔹 My accepted jobs
+            if (status === "accepted" && job.assignedTo === currentUserId) {
 
                 activeHtml += `
                     <div class="card border-active">
-                        <div class="job-header">
-                            <b>${job.customer}</b> - <span class="status-accepted">IN PROGRESS</span>
-                        </div>
-                        <p>📍 ${job.area} | 📞 ${job.phone}</p>
-                        <p>📝 ${job.description}</p>
-                        
-                        <div class="upload-box">
-                            <div>
-                                <label>1. Before Photo:</label>
-                                <input type="file" onchange="uploadPhoto(event, '${id}', 'before')">
-                            </div>
-                            <div style="margin-top:10px">
-                                <label>2. After Photo:</label>
-                                <input type="file" onchange="uploadPhoto(event, '${id}', 'after')">
-                            </div>
+                        <b>${job.customer}</b> - IN PROGRESS<br>
+                        📍 ${job.area} | 📞 ${job.phone}<br>
+                        📝 ${job.description}
+
+                        <div style="margin-top:10px;">
+                            <label>Before Photo:</label>
+                            <input type="file" onchange="uploadPhoto(event,'${id}','before')">
                         </div>
 
-                        <div style="margin-top:15px">
-                            <button id="comp-btn-${id}" class="btn-complete" 
-                                ${(!job.beforePic || !job.afterPic) ? 'disabled style="opacity:0.5"' : ''} 
+                        <div style="margin-top:10px;">
+                            <label>After Photo:</label>
+                            <input type="file" onchange="uploadPhoto(event,'${id}','after')">
+                        </div>
+
+                        <div style="margin-top:15px;">
+                            <button class="btn-success"
+                                ${( !job.beforePic || !job.afterPic ) ? 'disabled' : ''}
                                 onclick="completeJob('${id}')">
-                                Confirm & Finish Work
+                                Complete Job
                             </button>
-                            <button class="btn-danger-outline" onclick="reportJob('${id}')">Report Issue</button>
+
+                            <button class="btn-danger-outline"
+                                onclick="reportJob('${id}')">
+                                Report Issue
+                            </button>
                         </div>
                     </div>`;
             }
+
         });
 
-        document.getElementById("new-jobs-list").innerHTML = newHtml || "<p>No new jobs available.</p>";
-        document.getElementById("active-jobs-list").innerHTML = activeHtml || "<p>You have no active jobs.</p>";
+        document.getElementById("new-jobs-list").innerHTML =
+            newHtml || "<p>No new jobs available.</p>";
+
+        document.getElementById("active-jobs-list").innerHTML =
+            activeHtml || "<p>No active jobs.</p>";
+
     });
 }
 
+
+function acceptJob(id) {
+
+    db.collection("jobs").doc(id).update({
+        status: "accepted",
+        assignedTo: currentUserId
+    })
+    .then(() => alert("Job Accepted"))
+    .catch(err => alert(err.message));
+}
+
+
+function completeJob(id) {
+
+    db.collection("jobs").doc(id).update({
+        status: "completed"
+    })
+    .then(() => alert("Job Completed"))
+    .catch(err => alert(err.message));
+}
+
+
+function reportJob(id) {
+
+    db.collection("jobs").doc(id).update({
+        status: "reported"
+    })
+    .then(() => alert("Job Reported"))
+    .catch(err => alert(err.message));
+}
+
+
 function uploadPhoto(event, jobId, type) {
+
     const file = event.target.files[0];
     if (!file) return;
 
-    // Show loading hint
-    event.target.parentElement.style.color = "orange";
-    
     const ref = storage.ref("jobs/" + jobId + "_" + type + ".jpg");
 
-    ref.put(file).then(snapshot => {
-        return snapshot.ref.getDownloadURL();
-    }).then(url => {
-        // Update database with image URL
+    ref.put(file)
+    .then(snapshot => snapshot.ref.getDownloadURL())
+    .then(url => {
+
         let updateData = {};
-        updateData[type + "Pic"] = url; // Sets beforePic or afterPic
-        
-        db.collection("jobs").doc(jobId).update(updateData).then(() => {
-            alert(type.toUpperCase() + " photo saved!");
-            event.target.parentElement.style.color = "green";
-        });
-    }).catch(err => {
-        alert("Upload failed: " + err.message);
-    });
+        updateData[type + "Pic"] = url;
+
+        return db.collection("jobs").doc(jobId).update(updateData);
+    })
+    .then(() => alert(type.toUpperCase() + " photo uploaded"))
+    .catch(err => alert(err.message));
 }
 
-// Baki acceptJob aur completeJob functions aapke purane hi chalenge.
 </script>
 
 <style>
+.border-active {
+    border-left: 5px solid #28a745;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f9fff9;
+}
+</style>
+
+</body>
+</html>
