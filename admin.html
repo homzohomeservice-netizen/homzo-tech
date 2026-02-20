@@ -12,21 +12,12 @@
 
     <script src="firebase.js"></script>
 </head>
+
 <body onload="initAdmin()">
 
 <header>
     Admin Dashboard
-    <div class="card">
-    <h3>Add Technician</h3>
 
-    <input type="email" id="techEmail" placeholder="Technician Email">
-    <input type="password" id="techPass" placeholder="Technician Password">
-    <input type="text" id="techArea" placeholder="Area">
-
-    <button onclick="addTech()" class="btn-primary">
-        Create Technician
-    </button>
-</div>
     <div class="top-buttons">
         <button onclick="changePassword()" class="btn-primary">Change Password</button>
         <button onclick="logout()" class="logout-btn">Logout</button>
@@ -34,6 +25,19 @@
 </header>
 
 <div class="container">
+
+    <!-- Add Technician -->
+    <div class="card">
+        <h3>Add Technician</h3>
+
+        <input type="email" id="techEmail" placeholder="Technician Email">
+        <input type="password" id="techPass" placeholder="Technician Password">
+        <input type="text" id="techArea" placeholder="Area">
+
+        <button onclick="addTech()" class="btn-primary">
+            Create Technician
+        </button>
+    </div>
 
     <!-- Add Job -->
     <div class="card">
@@ -45,7 +49,7 @@
         <button class="btn-success" onclick="addJob()">Add Job</button>
     </div>
 
-    <!-- Jobs List -->
+    <!-- Active Jobs -->
     <div class="card">
         <h3>Active Jobs</h3>
         <div id="jobs"></div>
@@ -68,13 +72,20 @@ function initAdmin() {
     loadJobs();
 }
 
-// ADD JOB
+/* =========================
+   ADD JOB
+========================= */
 function addJob() {
 
     const customer = document.getElementById("customer").value;
     const phone = document.getElementById("phone").value;
     const area = document.getElementById("area").value;
     const description = document.getElementById("description").value;
+
+    if(!customer || !phone || !area || !description){
+        alert("All fields required");
+        return;
+    }
 
     db.collection("jobs").add({
         customer,
@@ -86,22 +97,31 @@ function addJob() {
     });
 
     alert("Job Added");
+
+    document.getElementById("customer").value = "";
+    document.getElementById("phone").value = "";
+    document.getElementById("area").value = "";
+    document.getElementById("description").value = "";
 }
 
-// LOAD JOBS (REAL TIME)
+/* =========================
+   LOAD JOBS
+========================= */
 function loadJobs() {
 
-    db.collection("jobs").orderBy("createdAt", "desc")
+    db.collection("jobs")
+    .orderBy("createdAt", "desc")
     .onSnapshot(snapshot => {
 
         let activeHTML = "";
         let historyHTML = "";
 
         snapshot.forEach(doc => {
+
             const job = doc.data();
             const id = doc.id;
 
-            const html = `
+            const jobCard = `
                 <div class="card">
                     <b>${job.customer}</b> (${job.area})<br>
                     ${job.phone}<br>
@@ -109,16 +129,19 @@ function loadJobs() {
                     <div class="job-status status-${job.status}">
                         ${job.status.toUpperCase()}
                     </div>
-                    <button class="btn-danger" onclick="deleteJob('${id}')">Delete</button>
+
+                    <button onclick="editJob('${id}','${job.customer}','${job.phone}','${job.description}','${job.area}')" class="btn-primary">Edit</button>
+
                     <button onclick="deleteJob('${id}')" class="btn-danger">Delete</button>
                 </div>
             `;
 
             if (job.status === "completed" || job.status === "reported") {
-                historyHTML += html;
+                historyHTML += jobCard;
             } else {
-                activeHTML += html;
+                activeHTML += jobCard;
             }
+
         });
 
         document.getElementById("jobs").innerHTML = activeHTML;
@@ -127,10 +150,45 @@ function loadJobs() {
     });
 }
 
-// DELETE JOB
+/* =========================
+   DELETE JOB
+========================= */
 function deleteJob(id) {
-    db.collection("jobs").doc(id).delete();
+
+    if(confirm("Are you sure you want to delete this job?")) {
+
+        db.collection("jobs").doc(id).delete()
+        .then(() => alert("Job Deleted"))
+        .catch(error => alert(error.message));
+    }
 }
+
+/* =========================
+   EDIT JOB
+========================= */
+function editJob(id, customer, phone, description, area) {
+
+    const newCustomer = prompt("Customer Name:", customer);
+    const newPhone = prompt("Phone:", phone);
+    const newDesc = prompt("Description:", description);
+    const newArea = prompt("Area:", area);
+
+    if(newCustomer && newPhone && newDesc && newArea) {
+
+        db.collection("jobs").doc(id).update({
+            customer: newCustomer,
+            phone: newPhone,
+            description: newDesc,
+            area: newArea
+        })
+        .then(() => alert("Job Updated"))
+        .catch(error => alert(error.message));
+    }
+}
+
+/* =========================
+   ADD TECHNICIAN
+========================= */
 function addTech() {
 
     const email = document.getElementById("techEmail").value;
@@ -142,7 +200,6 @@ function addTech() {
         return;
     }
 
-    // Secondary app create (admin logout na ho)
     const secondaryApp = firebase.initializeApp(firebase.app().options, "Secondary");
 
     secondaryApp.auth()
@@ -164,49 +221,14 @@ function addTech() {
         document.getElementById("techEmail").value = "";
         document.getElementById("techPass").value = "";
         document.getElementById("techArea").value = "";
-
     })
     .catch(error => {
         alert(error.message);
         secondaryApp.delete();
     });
 }
-    function deleteJob(id) {
 
-    if(confirm("Are you sure you want to delete this job?")) {
-
-        db.collection("jobs").doc(id).delete()
-        .then(() => {
-            alert("Job Deleted");
-        })
-        .catch(error => {
-            alert(error.message);
-        });
-    }
-}
-</scrfunction editJob(id, customer, phone, description, area) {
-
-    const newCustomer = prompt("Customer Name:", customer);
-    const newPhone = prompt("Phone:", phone);
-    const newDesc = prompt("Description:", description);
-    const newArea = prompt("Area:", area);
-
-    if(newCustomer && newPhone && newDesc && newArea) {
-
-        db.collection("jobs").doc(id).update({
-            customer: newCustomer,
-            phone: newPhone,
-            description: newDesc,
-            area: newArea
-        })
-        .then(() => {
-            alert("Job Updated");
-        })
-        .catch(error => {
-            alert(error.message);
-        });
-    }
-}script>
+</script>
 
 </body>
 </html>
