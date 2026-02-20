@@ -10,10 +10,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
+    <!-- Your Firebase Config -->
     <script src="firebase.js"></script>
 </head>
 
-<body onload="initAdmin()">
+<body>
 
 <header>
     Admin Dashboard
@@ -65,16 +66,25 @@
 
 <script>
 
-checkAuth("admin");
-requestNotification();
+/* =========================
+   PAGE LOAD SAFE INIT
+========================= */
+
+window.addEventListener("DOMContentLoaded", function () {
+    initAdmin();
+});
 
 function initAdmin() {
+    checkAuth("admin");
+    requestNotification();
     loadJobs();
 }
+
 
 /* =========================
    ADD JOB
 ========================= */
+
 function addJob() {
 
     const customer = document.getElementById("customer").value;
@@ -93,20 +103,24 @@ function addJob() {
         area,
         description,
         status: "pending",
-        createdAt: new Date()
-    });
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+        alert("Job Added");
 
-    alert("Job Added");
-
-    document.getElementById("customer").value = "";
-    document.getElementById("phone").value = "";
-    document.getElementById("area").value = "";
-    document.getElementById("description").value = "";
+        document.getElementById("customer").value = "";
+        document.getElementById("phone").value = "";
+        document.getElementById("area").value = "";
+        document.getElementById("description").value = "";
+    })
+    .catch(error => alert(error.message));
 }
+
 
 /* =========================
    LOAD JOBS
 ========================= */
+
 function loadJobs() {
 
     db.collection("jobs")
@@ -150,9 +164,11 @@ function loadJobs() {
     });
 }
 
+
 /* =========================
    DELETE JOB
 ========================= */
+
 function deleteJob(id) {
 
     if(confirm("Are you sure you want to delete this job?")) {
@@ -163,9 +179,11 @@ function deleteJob(id) {
     }
 }
 
+
 /* =========================
    EDIT JOB
 ========================= */
+
 function editJob(id, customer, phone, description, area) {
 
     const newCustomer = prompt("Customer Name:", customer);
@@ -186,9 +204,11 @@ function editJob(id, customer, phone, description, area) {
     }
 }
 
+
 /* =========================
    ADD TECHNICIAN
 ========================= */
+
 function addTech() {
 
     const email = document.getElementById("techEmail").value;
