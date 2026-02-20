@@ -16,6 +16,17 @@
 
 <header>
     Admin Dashboard
+    <div class="card">
+    <h3>Add Technician</h3>
+
+    <input type="email" id="techEmail" placeholder="Technician Email">
+    <input type="password" id="techPass" placeholder="Technician Password">
+    <input type="text" id="techArea" placeholder="Area">
+
+    <button onclick="addTech()" class="btn-primary">
+        Create Technician
+    </button>
+</div>
     <div class="top-buttons">
         <button onclick="changePassword()" class="btn-primary">Change Password</button>
         <button onclick="logout()" class="logout-btn">Logout</button>
@@ -119,7 +130,46 @@ function loadJobs() {
 function deleteJob(id) {
     db.collection("jobs").doc(id).delete();
 }
+function addTech() {
 
+    const email = document.getElementById("techEmail").value;
+    const pass = document.getElementById("techPass").value;
+    const area = document.getElementById("techArea").value;
+
+    if(!email || !pass || !area){
+        alert("All fields required");
+        return;
+    }
+
+    // Secondary app create (admin logout na ho)
+    const secondaryApp = firebase.initializeApp(firebase.app().options, "Secondary");
+
+    secondaryApp.auth()
+    .createUserWithEmailAndPassword(email, pass)
+    .then(userCredential => {
+
+        const uid = userCredential.user.uid;
+
+        db.collection("users").doc(uid).set({
+            name: email,
+            role: "tech",
+            area: area
+        });
+
+        alert("Technician Created Successfully");
+
+        secondaryApp.delete();
+
+        document.getElementById("techEmail").value = "";
+        document.getElementById("techPass").value = "";
+        document.getElementById("techArea").value = "";
+
+    })
+    .catch(error => {
+        alert(error.message);
+        secondaryApp.delete();
+    });
+}
 </script>
 
 </body>
