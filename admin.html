@@ -10,7 +10,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
-    <!-- Your Firebase Config -->
     <script src="firebase.js"></script>
 </head>
 
@@ -47,6 +46,11 @@
         <input type="text" id="phone" placeholder="Phone">
         <input type="text" id="area" placeholder="Area">
         <textarea id="description" placeholder="Job Description"></textarea>
+
+        <select id="assignTech">
+            <option value="">Assign Technician (Optional)</option>
+        </select>
+
         <button class="btn-success" onclick="addJob()">Add Job</button>
     </div>
 
@@ -66,20 +70,35 @@
 
 <script>
 
-/* =========================
-   PAGE LOAD SAFE INIT
-========================= */
-
 window.addEventListener("DOMContentLoaded", function () {
-    initAdmin();
-});
-
-function initAdmin() {
     checkAuth("admin");
     requestNotification();
     loadJobs();
-}
+    loadTechnicians();
+});
 
+/* =========================
+   LOAD TECHNICIANS
+========================= */
+
+function loadTechnicians() {
+
+    db.collection("users")
+    .where("role", "==", "tech")
+    .onSnapshot(snapshot => {
+
+        let options = `<option value="">Assign Technician (Optional)</option>`;
+
+        snapshot.forEach(doc => {
+            const user = doc.data();
+            options += `<option value="${doc.id}|${user.name}">
+                            ${user.name} (${user.area})
+                        </option>`;
+        });
+
+        document.getElementById("assignTech").innerHTML = options;
+    });
+}
 
 /* =========================
    ADD JOB
@@ -91,10 +110,20 @@ function addJob() {
     const phone = document.getElementById("phone").value;
     const area = document.getElementById("area").value;
     const description = document.getElementById("description").value;
+    const techData = document.getElementById("assignTech").value;
 
     if(!customer || !phone || !area || !description){
         alert("All fields required");
         return;
+    }
+
+    let assignedTo = "";
+    let assignedName = "";
+
+    if (techData) {
+        const parts = techData.split("|");
+        assignedTo = parts[0];
+        assignedName = parts[1];
     }
 
     db.collection("jobs").add({
@@ -102,6 +131,8 @@ function addJob() {
         phone,
         area,
         description,
+        assignedTo,
+        assignedName,
         status: "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     })
@@ -112,10 +143,10 @@ function addJob() {
         document.getElementById("phone").value = "";
         document.getElementById("area").value = "";
         document.getElementById("description").value = "";
+        document.getElementById("assignTech").value = "";
     })
     .catch(error => alert(error.message));
 }
-
 
 /* =========================
    LOAD JOBS
@@ -134,14 +165,17 @@ function loadJobs() {
 
             const job = doc.data();
             const id = doc.id;
+            const status = job.status || "pending";
 
             const jobCard = `
                 <div class="card">
                     <b>${job.customer}</b> (${job.area})<br>
                     ${job.phone}<br>
-                    ${job.description}
-                    <div class="job-status status-${job.status}">
-                        ${job.status.toUpperCase()}
+                    ${job.description}<br>
+                    ${job.assignedName ? "<b>Assigned To:</b> " + job.assignedName + "<br>" : ""}
+
+                    <div class="job-status status-${status}">
+                        ${status.toUpperCase()}
                     </div>
 
                     <button onclick="editJob('${id}','${job.customer}','${job.phone}','${job.description}','${job.area}')" class="btn-primary">Edit</button>
@@ -150,7 +184,7 @@ function loadJobs() {
                 </div>
             `;
 
-            if (job.status === "completed" || job.status === "reported") {
+            if (status === "completed" || status === "reported") {
                 historyHTML += jobCard;
             } else {
                 activeHTML += jobCard;
@@ -164,21 +198,17 @@ function loadJobs() {
     });
 }
 
-
 /* =========================
    DELETE JOB
 ========================= */
 
 function deleteJob(id) {
-
-    if(confirm("Are you sure you want to delete this job?")) {
-
+    if(confirm("Delete this job?")) {
         db.collection("jobs").doc(id).delete()
         .then(() => alert("Job Deleted"))
         .catch(error => alert(error.message));
     }
 }
-
 
 /* =========================
    EDIT JOB
@@ -192,7 +222,6 @@ function editJob(id, customer, phone, description, area) {
     const newArea = prompt("Area:", area);
 
     if(newCustomer && newPhone && newDesc && newArea) {
-
         db.collection("jobs").doc(id).update({
             customer: newCustomer,
             phone: newPhone,
@@ -204,9 +233,8 @@ function editJob(id, customer, phone, description, area) {
     }
 }
 
-
 /* =========================
-   ADD TECHNICIAN
+   ADD TECHNICIAN (SAFE)
 ========================= */
 
 function addTech() {
@@ -220,7 +248,13 @@ function addTech() {
         return;
     }
 
-    const secondaryApp = firebase.initializeApp(firebase.app().options, "Secondary");
+    let secondaryApp;
+
+    try {
+        secondaryApp = firebase.app("Secondary");
+    } catch (e) {
+        secondaryApp = firebase.initializeApp(firebase.app().options, "Secondary");
+    }
 
     secondaryApp.auth()
     .createUserWithEmailAndPassword(email, pass)
@@ -236,6 +270,7 @@ function addTech() {
 
         alert("Technician Created Successfully");
 
+        secondaryApp.auth().signOut();
         secondaryApp.delete();
 
         document.getElementById("techEmail").value = "";
